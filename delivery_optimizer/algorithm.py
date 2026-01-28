@@ -27,9 +27,41 @@ def calculate_route_distance(route: List[Tuple[float, float]], distance_fn: Call
     
     return total_dist
 
+def two_opt(route: List[Tuple[float, float]], distance_fn: Callable) -> List[Tuple[float, float]]:
+    """
+    Refines the route using the 2-Opt algorithm to remove crossing paths.
+    """
+    best_route = route[:]
+    improved = True
+    
+    # We don't change start (0) and end (-1) because they are the fixed depot location
+    # BUT for a TSP tour, start and end are the same point.
+    # The segment between i and k is reversed.
+    
+    while improved:
+        improved = False
+        for i in range(1, len(best_route) - 2):
+            for k in range(i + 1, len(best_route) - 1):
+                # Current edges: (i-1, i) and (k, k+1)
+                # New edges:     (i-1, k) and (i, k+1)
+                
+                # Calculate lengths
+                d_current = distance_fn(best_route[i-1], best_route[i]) + \
+                            distance_fn(best_route[k], best_route[k+1])
+                            
+                d_new = distance_fn(best_route[i-1], best_route[k]) + \
+                       distance_fn(best_route[i], best_route[k+1])
+                
+                if d_new < d_current:
+                    # Reverse segment from i to k
+                    best_route[i:k+1] = best_route[i:k+1][::-1]
+                    improved = True
+                    
+    return best_route
+
 def solve_nearest_neighbor(locations: List[Tuple[float, float]], distance_fn: Callable) -> Tuple[List[Tuple[float, float]], float]:
     """
-    Optimized route using Nearest Neighbor heuristic.
+    Optimized route using Nearest Neighbor heuristic followed by 2-Opt refinement.
     Assumes locations[0] is the depot.
     Returns: (Full Route including return to depot, Total Distance)
     """
@@ -41,17 +73,21 @@ def solve_nearest_neighbor(locations: List[Tuple[float, float]], distance_fn: Ca
     
     current = depot
     route = [depot]
-    total_dist = 0
     
+    # 1. Initial Greedy Construction (Nearest Neighbor)
     while unvisited:
         nearest = min(unvisited, key=lambda x: distance_fn(current, x))
-        total_dist += distance_fn(current, nearest)
         current = nearest
         route.append(current)
         unvisited.remove(current)
         
     # Return to depot
-    total_dist += distance_fn(current, depot)
     route.append(depot)
     
-    return route, total_dist
+    # 2. Refine with 2-Opt
+    optimized_route = two_opt(route, distance_fn)
+    
+    # 3. Recalculate Total Distance
+    total_dist = calculate_route_distance(optimized_route, distance_fn)
+    
+    return optimized_route, total_dist
