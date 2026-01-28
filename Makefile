@@ -17,7 +17,7 @@ install:
 
 # Run unit tests
 test:
-	$(PYTHON) -m unittest discover tests
+	$(PYTHON) -m pytest tests
 	@echo "✅ Tests passed."
 
 # Run the application with default settings (30 stops, 3 vehicles)
