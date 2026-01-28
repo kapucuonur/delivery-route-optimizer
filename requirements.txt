@@ -1,2 +1,4 @@
 folium==0.14.0
 pytest==7.4.0
+flask
+flask-cors
